@@ -1,56 +1,56 @@
+import fs from "fs";
 import axios from "axios";
-import OpenAI from "openai";
-import dotenv from "dotenv";
+import FormData from "form-data";
 
-dotenv.config();
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-const wp = axios.create({
-  baseURL: `${process.env.WP_URL}/wp-json/wp/v2`,
-  auth: {
-    username: process.env.WP_USERNAME,
-    password: process.env.WP_PASSWORD
+export default class WordPressManager {
+  constructor() {
+    this.themePath = process.env.THEME_PATH;
+    this.apiKey = process.env.OPENAI_API_KEY;
   }
-});
 
-export async function optimizeWordPressPages() {
-  console.log("🔍 Fetching WordPress pages...");
+  async optimize(task) {
+    const phpFiles = fs
+      .readdirSync(this.themePath)
+      .filter(f => f.endsWith(".php"));
 
-  const pages = await wp.get("/pages");
+    for (const file of phpFiles) {
+      const filePath = `${this.themePath}/${file}`;
+      let content = fs.readFileSync(filePath, "utf8");
 
-  for (const page of pages.data) {
-    console.log(`✏️ Optimizing: ${page.title.rendered}`);
+      const updated = await this.aiRewrite(content, task);
 
+      fs.writeFileSync(filePath, updated);
+    }
+
+    return { status: "WordPress theme updated" };
+  }
+
+  async aiRewrite(content, task) {
     const prompt = `
-      You are an SEO expert AI.
-      Improve this WordPress page.
+You are an expert WordPress developer and SEO/UI specialist.
+Task: ${task}
+Rewrite or improve the following code while keeping it functional:
 
-      Title: ${page.title.rendered}
-      Content: ${page.content.rendered}
+${content}
+`;
 
-      Return JSON ONLY with:
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
       {
-        "title": "New title",
-        "content": "Improved HTML content",
-        "metaDescription": "SEO meta description"
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You improve code safely." },
+          { role: "user", content: prompt }
+        ]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json"
+        }
       }
-    `;
+    );
 
-    const result = await client.responses.create({
-      model: "gpt-4.1",
-      input: prompt
-    });
-
-    const output = JSON.parse(result.output_text);
-
-    await wp.post(`/pages/${page.id}`, {
-      title: output.title,
-      content: output.content,
-      meta: {
-        _yoast_wpseo_metadesc: output.metaDescription
-      }
-    });
-
-    console.log(`✅ Updated WordPress page: ${page.title.rendered}`);
+    return response.data.choices[0].message.content;
   }
 }
