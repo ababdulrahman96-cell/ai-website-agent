@@ -1,19 +1,18 @@
 {
   "name": "ai-website-agent",
   "version": "1.0.0",
-  "description": "AI Agent for managing WordPress.com and HTML website",
+  "description": "AI agent that manages WordPress and HTML websites",
   "main": "agent.js",
-  "type": "module",
   "scripts": {
     "start": "node agent.js",
     "cron": "node cron.js"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "basic-ftp": "^5.0.3",
-    "dotenv": "^16.0.3",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "node-cron": "^3.0.2",
-    "openai": "^4.0.0"
+    "form-data": "^4.0.0",
+    "node-cron": "^3.0.3"
   }
 }
