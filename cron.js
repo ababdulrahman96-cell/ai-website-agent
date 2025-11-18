@@ -1,10 +1,13 @@
 import cron from "node-cron";
-import { runAgent } from "./agent.js";
+import axios from "axios";
 
-console.log("⏱ Cron job running...");
-
-// Run at 3:00 AM daily
-cron.schedule("0 3 * * *", () => {
-  console.log("🔁 Running daily AI job...");
-  runAgent();
+cron.schedule("0 */6 * * *", async () => {
+  try {
+    await axios.post(`${process.env.AI_WEBHOOK_URL}/optimize`, {
+      task: "maintain SEO, improve UX, speed and mobile layout"
+    });
+    console.log("Auto-optimization completed.");
+  } catch (err) {
+    console.log("Cron failed:", err.message);
+  }
 });
